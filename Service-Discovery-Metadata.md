@@ -64,4 +64,4 @@ Description block supports four variable types description
                 |  VARIABLE TYPE |  VARIABLE LOWER LIMIT  |  VARIALBLE UPPER LIMIT  |
                  -------------------------------------------------------------------
 ```
-Variable lower limit and upper limit are encoded in the of variable type
+Variable lower limit and upper limit are encoded in variable assigned type
