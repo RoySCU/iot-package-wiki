@@ -1,22 +1,28 @@
 IoT Package Access Control Protocol Design
 =====================
 
-IoT devices like smart home cameras and door locks require high data confidentiality and strict access control, which are supported by NDNoT's access control module. Instead of storing the access keys in remote cloud servers, IoT package provides localized access control, allowing the local user (e.g., home owner) to have complete control of the data produced and consumed by the IoT system. We provide identities based access control and prefixes based access control as two options in our implementaion. 
+IoT devices like smart home cameras and door locks require high data confidentiality and strict access control, which are supported by NDNoT's access control module. Instead of storing the access keys in remote cloud servers, IoT package provides localized access control, allowing the local user (e.g., home owner) to have complete control of the data produced and consumed by the IoT system. Considering most RIOT OS devices are very constrained, which means one identity per device is reasonable, so we simplified the original NAC protocol, avoiding unnecessary energy consumption on computation. 
 
-### Identities Based Access Control
-In this method, a producer first communicate with authentication server, using classic Diffie Hellman key exchange algorithm based on ECDSA keys (ECDH), to generate a seed for content encryption. Its access control request interest include identity name and Diffie Hellman key bits and a ECDSA signature by its communication key. As an optional parameter, a scheme of access condition may also be appended to the name, informing authentication server what type of consumers/applicants can have the decrytion key of the packets.
+### Requirement of Access Controller
+Access Controller must be capable of generating ECDSA key pairs on their own, to guarantee the effectiveness of key updating, since some devices may always use one ECDSA public key to conduct Diffie Hellman.
 
+### Key Management
+Each time Producer apply for a new Content Key, After the DH exchange, Access Controller will increase the `<CK-ID>` and hold the Content Key in plaintext, until consumer identities apply for access. Then Access Controller encrypt the Content Key in using consumer's Diffie Hellman result, and publish the data.
+
+### Producer - Access Controller
+In this method, a producer first communicate with Access Controller, using classic Diffie Hellman key exchange algorithm based on ECDSA keys (ECDH), to generate a seed for content encryption. The generated key is noted with Content Key. Its access control request interest include identity name and Diffie Hellman key bits and a ECDSA signature by its communication key. 
 ```
-             producer identity                                                     authentication server
-                     |           /{home prefix}/accesscontrol/{digest of Parameter}         |
-                     |        Parameters: _PRODUCER, {identity}, {ECDSA public key bits}    |
-                     |                   Optional Parameter: Control Scheme                 |
+             producer identity                                                       Access Controller
+                     |           /<home prefix>/accesscontrol/<identity>/KEY/<KEY-ID>       |
+                     |                         /{digest of Parameters}                      |
+                     |        Parameters: {Diffie Hellman public key bits}                  |
                      |                          Sig by CKpri                                |
                      | -------------------------------------------------------------------> |  
                      |                                                                      |
                      |                                                              verify signature, 
-                     |                                                  update or create producer identity entry
+                     |                                                           key management process 
                      |                                                 generate HMAC key by using Diffie Hellman
+                     |                                                      register corresponding KDK prefix
                      |                                                                      |
                      |                                                                      |
                      |            Data: {Diffie Hellman bits}, {sig by AKpri}               |
@@ -29,34 +35,29 @@ In this method, a producer first communicate with authentication server, using c
                      |                                                                      |
 ```
 
-On the access application side, a consumer identity expresses a signed request, which includes the identity it want to get access to. This interst also may include an optional parameter to prove the request sender has the right of getting access. Successfully verifying the signature, authentication server will search the list of registered producer identities, and check access control scheme to decide whether to the applicant have the right to obtain the seed of desired producer identity. After that authentication server and access applicant will also use classic Diffie Hellman algorithm on ECDSA (ECDH) to decide the encryption key for transmitting producer's access seed on channel.
+### Consumer - Access Controller
+Consumer express an interest to fetch data from access controlled producer identity. After a normal interest-data round, consumer obtains data name `/<original name>/ENCRYPTED-BY/<producer identity prefix>/CK/<CK-ID>` and automatically construct an interest name `/<home prefix>/accesscontrol/<producer identity>/KDK/<Key-ID>/ENCRYPTED-BY/<consumer identity prefix>` to query the producer's encrypted CK from Access Controller.
 
 ```
-             consumer identity                                                     authentication server
-                     |           /{home prefix}/accesscontrol/{digest of Parameter}         |
-                     |        Parameters: _CONSUEMR, {identity}, {ECDSA public key bits},   |
-                     |                         {desired identity}                           |
-                     |                   Optional Parameter: Control Scheme                 |
+             consumer identity                                                       Access Controller
+                     |           /<home prefix>/accesscontrol/<producer identity>           |
+                     |        /KDK/<Key-ID>/ENCRYPTED-BY/<consumer identity prefix>         |   
+                     |                      /{digest of Parameters}                         |
+                     |        Parameters: {Diffie Hellman public key bits}                  |
                      |                          Sig by CKpri                                |
                      | -------------------------------------------------------------------> |  
                      |                                                                      |
                      |                                                              verify signature, 
-                     |                                                  update or create consumer identity entry
+                     |                                                           key management process 
                      |                                                 generate HMAC key by using Diffie Hellman
                      |                                                                      |
                      |                                                                      |
-                     |        Data: {Diffie Hellman bits}, {encrypted producer seed},       | 
-                     |                           {sig by AKpri}                             |
+                     |            Data: {Diffie Hellman bits}, {sig by AKpri}               |
                      | <------------------------------------------------------------------- |
                      |                                                                      |                            
             verify HMAC signature,                                                          |
   generate HMAC from Diffie Hellman bits,                                                   |
-            decrypt producer seed                                                           |
-           key management process                                                           | 
+          key management process                                                            | 
                      |                                                                      |
                      |                                                                      |
 ```
-
-### Prefixes Based Access Control
-------------------------
-To devices who need precisely control the access of content, an identity based method isn't enough. As an alternative solution, we also provide access control on certain producer assigned prefixes. In this method, producer must name specific prefixes to authentication server. This solution uses similar workflow. 
