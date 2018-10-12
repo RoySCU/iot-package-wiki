@@ -52,6 +52,3 @@ In this part, considering the time limtation of bootstrap, we use four smaller b
                      |                                                                      |
                      |                                                                      |
 ```
-### Identity Application
---------------------------
-Basically, an anchor signed certificate is the end of bootstrapping, device can extract home prefix and anchor cert from the second round response. However, a device who may need several identities to completely utilize its functionalities should bootstrap many times, each time applying for one certificate for one identity. 
