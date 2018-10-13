@@ -56,7 +56,7 @@ Other than periodically broadcast interest to notify neighbours the available id
                          |                     Normal Interest                         |                         
                          | ----------------------------------------------------------->|
                          |                                                             |
-                         |                           Data                              |
+                         |                       Normal Data                           |
                          | <---------------------------------------------------------- |
                          |                                                             |
 ```

@@ -2,7 +2,7 @@ Contents
 ========
 
 Documentation:
-* [[Report]]
+* [Report](https://github.com/RoySCU/iot-pkg-doc/blob/master/main.pdf)
 
 Protocols:
 * [[Bootstrapping Protocol]]
@@ -10,5 +10,4 @@ Protocols:
 * [[Access Control Protocol]]
 
 Details:
-* [[Service discovery Metadata]]
-* [[Access Control Options]]
+* [[Service Discovery's Metadata]]
